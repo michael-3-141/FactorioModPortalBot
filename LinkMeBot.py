@@ -1,7 +1,7 @@
 """
-/u/PlayStoreLinks__Bot
+/u/FactorioModPortalBot
 
-A Reddit Bot made by /u/cris9696 
+A Reddit Bot made by /u/michael________ based on a bot by /u/cris9696
 
 General workflow:
 
@@ -27,7 +27,7 @@ import urllib
 import html
 #mine
 import Config
-from PlayStore import PlayStore
+import ModPortal
 
 
 def stopBot():
@@ -56,59 +56,39 @@ def isDone(comment):
 def generateReply(link_me_requests):
     my_reply = ""
 
-    nOfRequestedApps = 0
-    nOfFoundApps = 0
+    nOfRequestedMods = 0
+    nOfFoundMods = 0
     for link_me_request in link_me_requests:    #for each linkme command
-        requested_apps = link_me_request.split(",") #split the apps by ,
+        requested_mods = link_me_request.split(",") #split the mods by ,
 
-        for app_name in requested_apps:
-            app_name = app_name.strip()
+        for mod_name in requested_mods:
+            mod_name = mod_name.strip()
 
-            if len(app_name) > 0:
-                app_name = html.unescape(app_name)  #html encoding to normal encoding 
-                nOfRequestedApps += 1
+            if len(mod_name) > 0:
+                mod_name = html.unescape(mod_name)  #html encoding to normal encoding 
+                nOfRequestedMods += 1
                 
-                if nOfRequestedApps <= Config.maxAppsPerComment:
-                    app = findApp(app_name)
+                if nOfRequestedMods <= Config.maxModsPerComment:
+                    mod = ModPortal.search(mod_name)
 
-                    if app:
-                        nOfFoundApps += 1
-                        my_reply += "[**" + app.name + "**](" + app.link + ") - " + ("Free" if app.free else "Paid") + " " + (" with IAP -" if app.IAP else " - ") + " Rating: " + app.rating + "/100 - "
-                        my_reply += "Search for '" + app_name + "' on the [**Play Store**](https://play.google.com/store/search?q=" + urllib.parse.quote_plus(app_name.encode("utf-8")) + ")\n\n"
+                    if mod:
+                        nOfFoundMods += 1
+                        my_reply += "[**" + mod.name + "**](" + mod.link + ") - By: " + mod.author + " - Game Version: " + mod.game_versions[0] + "\n\n"
                         
-                        logger.info("'" + app_name + "' found. Name: " + app.name)
+                        logger.info("'" + mod_name + "' found. Name: " + mod.name)
                     else:
-                        my_reply +="I am sorry, I can't find any app named '" + app_name + "'.\n\n"
-                        logger.info("Can't find any app named '" + app_name + "'")
+                        my_reply +="I am sorry, I can't find any mod named '" + mod_name + "'.\n\n"
+                        logger.info("Can't find any mod named '" + mod_name + "'")
 
-    if nOfRequestedApps > Config.maxAppsPerComment:
-        my_reply = "You requested more than " + str(Config.maxAppsPerComment) + " apps. I will only link to the first " + str(Config.maxAppsPerComment) + " apps.\n\n" + my_reply
+    if nOfRequestedMods > Config.maxModsPerComment:
+        my_reply = "You requested more than " + str(Config.maxModsPerComment) + " mods. I will only link to the first " + str(Config.maxModsPerComment) + " mods.\n\n" + my_reply
     
     my_reply += Config.closingFormula
 
-    if nOfFoundApps == 0:   #return None because we don't want to answer
+    if nOfFoundMods == 0:   #return None because we don't want to answer
         my_reply = None
 
     return my_reply
-
-
-def findApp(app_name):
-    logger.debug("Searching for '" + app_name + "'")
-    app_name = app_name.lower()
-    app = None
-
-    if len(app_name)>0:
-        #app = searchInDatabase(app_name)
-        #if app:
-        #     return app
-        # else:
-        try:
-            app = PlayStore.search(app_name)
-            return app
-        except PlayStore.AppNotFoundException as e:
-            return None 
-    else:
-        return None
 
 def doReply(comment,myReply):
     logger.debug("Replying to '" + comment.id + "'")
@@ -117,7 +97,6 @@ def doReply(comment,myReply):
     while tryAgain:
         tryAgain = False
         try:
-            # "#&#009;\n\n###&#009;\n\n#####&#009;\n"
             comment.reply(myReply)
             logger.info("Successfully replied to comment '" + comment.id + "'\n")
             break
@@ -160,7 +139,7 @@ if __name__ == "__main__":
 
 
     try:
-        r = praw.Reddit("/u/PlayStoreLinks__Bot by /u/cris9696 V3.0")
+        r = praw.Reddit(user_agent = "/u/FactorioModPortalBot by /u/michael________ V1.0")
         r.login(Config.username, Config.password, disable_warning=True)
         logger.info("Successfully logged in")
 
@@ -176,7 +155,7 @@ if __name__ == "__main__":
 
     subreddits = r.get_subreddit("+".join(Config.subreddits))
 
-    link_me_regex = re.compile("\\blink[\s]*me[\s]*:[\s]*(.*?)(?:\.|;|$)", re.M | re.I)
+    link_me_regex = re.compile("\\blink\s*mod\s*:\s*(.*?)(?:\.|;|$)", re.M | re.I)
 
     try:
         logger.debug("Getting the comments")
@@ -190,7 +169,6 @@ if __name__ == "__main__":
 
         #to avoid injection of stuff
         clean_comment = removeRedditFormatting(comment.body)
-
         #match the request
         link_me_requests = link_me_regex.findall(clean_comment)
         #if it matches
@@ -201,5 +179,5 @@ if __name__ == "__main__":
                 if reply is not None:
                     doReply(comment,reply)
                 else:
-                    logger.info("No Apps found for comment '" + comment.id + "'. Ignoring reply.")
+                    logger.info("No Mods found for comment '" + comment.id + "'. Ignoring reply.")
     stopBot()

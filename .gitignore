@@ -1,3 +1,5 @@
 *.pyc
 
 venv/
+Config_prod.py
+bot.log
