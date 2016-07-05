@@ -149,29 +149,29 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
+logger.info("Starting up")
+logger.debug("Logging in")
+try:
+    r = praw.Reddit(user_agent = "/u/FactorioModPortalBot by /u/michael________ V1.0")
+    r.login(os.environ['REDDIT_USER'], os.environ['REDDIT_PASS'], disable_warning=True)
+    logger.info("Successfully logged in")
+
+except praw.errors.RateLimitExceeded as error:
+    logger.error("The Bot is doing too much! Sleeping for " + str(error.sleep_time) + " and then shutting down!")
+    time.sleep(error.sleep_time)
+    stopBot()
+
+except Exception as e:
+    logger.error("Exception '" + str(e) + "' occured on login!")
+    stopBot()
+
+
+subreddits = r.get_subreddit("+".join(Config.subreddits))
+
+link_me_regex = re.compile("\\blink\s*mod\s*:\s*(.*?)(?:\.|;|$)", re.M | re.I)
+
 #main method
 while True:
-    logger.info("Starting up")
-    logger.debug("Logging in")
-    try:
-        r = praw.Reddit(user_agent = "/u/FactorioModPortalBot by /u/michael________ V1.0")
-        r.login(os.environ['REDDIT_USER'], os.environ['REDDIT_PASS'], disable_warning=True)
-        logger.info("Successfully logged in")
-
-    except praw.errors.RateLimitExceeded as error:
-        logger.error("The Bot is doing too much! Sleeping for " + str(error.sleep_time) + " and then shutting down!")
-        time.sleep(error.sleep_time)
-        stopBot()
-
-    except Exception as e:
-        logger.error("Exception '" + str(e) + "' occured on login!")
-        stopBot()
-
-
-    subreddits = r.get_subreddit("+".join(Config.subreddits))
-
-    link_me_regex = re.compile("\\blink\s*mod\s*:\s*(.*?)(?:\.|;|$)", re.M | re.I)
-
     try:
         logger.debug("Getting the comments")
         comments = subreddits.get_comments()
@@ -181,7 +181,6 @@ while True:
         stopBot()
 
     for comment in comments:
-
         #to avoid injection of stuff
         clean_comment = removeRedditFormatting(comment.body)
         #match the request
@@ -196,4 +195,5 @@ while True:
                 else:
                     logger.info("No Mods found for comment '" + comment.id + "'. Ignoring reply.")
     
+    logger.info("Done. Rechecking in 60 seconds.")
     time.sleep(60);
