@@ -63,10 +63,6 @@ def search(mod_name):
 def stopBot():
     logger.info("Shutting down")
 
-    if os.path.isfile(Config.botRunningFile):
-        logger.debug("Deleting lock file")
-        os.remove(Config.botRunningFile)
-
     sys.exit(0)
 
 def removeRedditFormatting(text):
@@ -154,20 +150,9 @@ logger.addHandler(fh)
 logger.addHandler(ch)
 
 #main method
-if __name__ == "__main__":
-
+while True:
     logger.info("Starting up")
-
-    if os.path.isfile("/tmp/botRunning"):
-        logger.warning("Bot is already running!")
-        stopBot(False)
-    else:
-        with open(Config.botRunningFile, 'a'):
-            pass
-
     logger.debug("Logging in")
-
-
     try:
         r = praw.Reddit(user_agent = "/u/FactorioModPortalBot by /u/michael________ V1.0")
         r.login(os.environ['REDDIT_USER'], os.environ['REDDIT_PASS'], disable_warning=True)
@@ -210,4 +195,5 @@ if __name__ == "__main__":
                     doReply(comment,reply)
                 else:
                     logger.info("No Mods found for comment '" + comment.id + "'. Ignoring reply.")
-    stopBot()
+    
+    time.sleep(60);

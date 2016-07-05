@@ -7,7 +7,6 @@ loggingLevel = logging.INFO
 databaseFile = "botDatabase.db"
 logFile = "bot.log"
 logFileDelete = "botDelete.log"
-botRunningFile = "botRunning"
 
 #SUBREDDITS
 subreddits = ["michael________"]
