@@ -1,11 +1,7 @@
 import logging
 
-#Login Info
-username = "username"
-password = "password"
-
 #LOGGING
-loggingLevel = logging.DEBUG
+loggingLevel = logging.INFO
 
 #FILES
 databaseFile = "botDatabase.db"

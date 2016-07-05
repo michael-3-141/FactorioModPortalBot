@@ -25,10 +25,40 @@ import pickle
 #web
 import urllib
 import html
+import requests
 #mine
 import Config
-import ModPortal
 
+
+class Mod():
+    name = None
+    author = None
+    link = None
+    game_versions = None
+    
+    def __init__(self):
+        pass
+
+def search(mod_name):
+    logger.info("Searching for '" + mod_name + "'")
+    encoded_name = urllib.parse.quote_plus(mod_name.encode('utf-8')) #we encode the name to a valid string for a url, replacing spaces with "+" and and & with &amp; for example 
+
+    logger.debug("Sending request for search")
+    json = requests.get("https://mods.factorio.com/api/mods?q=" + encoded_name + "&page_size=1&page=1").json();
+    
+    if(json["results"] == []):
+        logger.warning("Could not find mod " + mod_name + " on the mod portal!")
+        return None; #No results found, return.
+    
+    result = json["results"][0];
+    mod = Mod();	
+    mod.name = result["title"];
+    mod.author = result["owner"]
+    mod.link = "https://mods.factorio.com/mods/" + result["owner"] + "/" + result["name"]
+    mod.game_versions = result["game_versions"]
+    
+    logger.info("Mod was found")
+    return mod
 
 def stopBot():
     logger.info("Shutting down")
@@ -47,7 +77,7 @@ def isDone(comment):
     #TODO check if in the database
     comment.refresh()
     for reply in comment.replies:
-        if reply.author.name.lower() == Config.username.lower():
+        if reply.author.name.lower() == os.environ['REDDIT_USER'].lower():
             logging.debug("Already replied to \"" + comment.id + "\"")
             return True
 
@@ -69,7 +99,7 @@ def generateReply(link_me_requests):
                 nOfRequestedMods += 1
                 
                 if nOfRequestedMods <= Config.maxModsPerComment:
-                    mod = ModPortal.search(mod_name)
+                    mod = search(mod_name)
 
                     if mod:
                         nOfFoundMods += 1
@@ -140,7 +170,7 @@ if __name__ == "__main__":
 
     try:
         r = praw.Reddit(user_agent = "/u/FactorioModPortalBot by /u/michael________ V1.0")
-        r.login(Config.username, Config.password, disable_warning=True)
+        r.login(os.environ['REDDIT_USER'], os.environ['REDDIT_PASS'], disable_warning=True)
         logger.info("Successfully logged in")
 
     except praw.errors.RateLimitExceeded as error:
