@@ -9,7 +9,7 @@ logFile = "bot.log"
 logFileDelete = "botDelete.log"
 
 #SUBREDDITS
-subreddits = ["michael________"]
+subreddits = ["michael________","factorio"]
 
 #REPLY
 maxModsPerComment = 10
