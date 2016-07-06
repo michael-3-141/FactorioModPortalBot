@@ -13,5 +13,5 @@ subreddits = ["factorio"] #production
 #subreddits = ["michael________"]#dev
 
 #REPLY
-maxModsPerComment = 10
+maxModsPerComment = 20
 closingFormula = "\n\n------\n\n[^Source ^Code](https://github.com/michael-3-141/FactorioModPortalBot/) ^| ^Bot ^by ^/u/michael________ ^based ^on ^a ^bot ^by ^/u/cris9696 "

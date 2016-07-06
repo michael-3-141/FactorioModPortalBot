@@ -88,7 +88,6 @@ def generateReply(link_me_requests):
     my_reply = ""
     
     
-    nOfRequestedMods = 0
     nOfFoundMods = 0
     
     for request in link_me_requests:
@@ -108,7 +107,7 @@ def generateReply(link_me_requests):
                     #Update found mod counter
                     nOfFoundMods += 1
                     #Make sure mod request limit hasn't been reached
-                    if nOfRequestedMods <= Config.maxModsPerComment:
+                    if nOfFoundMods <= Config.maxModsPerComment:
                         #Add mod to reply
                         my_reply += "[**" + mod.name + "**](" + mod.link + ") - By: " + mod.author + " - Game Version: " + mod.game_versions[0] + "\n\n"
                         logger.info("'" + request_keyword + "' found. Name: " + mod.name)
@@ -118,7 +117,7 @@ def generateReply(link_me_requests):
                 logger.info("Can't find any mods named '" + request_keyword + "'")
     
     #If mod limit was exceeded, add a message to the reply
-    if nOfRequestedMods > Config.maxModsPerComment:
+    if nOfFoundMods > Config.maxModsPerComment:
         my_reply = "You requested more than " + str(Config.maxModsPerComment) + " mods. I will only link to the first " + str(Config.maxModsPerComment) + " mods.\n\n" + my_reply
     
     #Add the closing text
