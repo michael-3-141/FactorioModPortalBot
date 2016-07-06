@@ -92,7 +92,7 @@ def generateReply(link_me_requests):
     
     for request in link_me_requests:
         #Seperate amount of mod results requested and search keyword
-        request_name = request[0]
+        request_name = request[0] if len(request[0])>0 else 1
         request_keyword = request[1].strip()
         
         if len(request_keyword) > 0:
