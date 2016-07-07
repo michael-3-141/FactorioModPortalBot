@@ -9,8 +9,8 @@ logFile = "bot.log"
 logFileDelete = "botDelete.log"
 
 #SUBREDDITS
-#subreddits = ["factorio"] #production
-subreddits = ["michael________"]#dev
+subreddits = ["factorio"] #production
+#subreddits = ["michael________"]#dev
 
 #REPLY
 maxResponsesPerComment = 20
