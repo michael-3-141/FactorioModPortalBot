@@ -29,19 +29,8 @@ import requests
 #mine
 import Config
 
-#Mod class
-class Mod():
-    name = None
-    author = None
-    link = None
-    game_versions = None
-    
-    def __init__(self):
-        pass
-
 #Searches the mod portal with keyword "keyword" and returns an array of "count" mods.
 def search(keyword, count):
-
     logger.info("Searching for '" + keyword + "'")
     encoded_name = urllib.parse.quote_plus(keyword.encode('utf-8')) #we encode the name to a valid string for a url, replacing spaces with "+" and and & with &amp; for example 
     
@@ -49,20 +38,24 @@ def search(keyword, count):
     logger.debug("Sending request for search")
     json = requests.get("https://mods.factorio.com/api/mods?q=" + encoded_name + "&page_size=" + str(count) + "&page=1").json();
     
-    modlist = []
+    response_list = []
     
     if(json["results"] == []):
         logger.warning("Could not find mod " + keyword + " on the mod portal!")
     else:
         for result in json["results"]:
-            mod = Mod();
-            mod.name = result["title"];
-            mod.author = result["owner"]
-            mod.link = "https://mods.factorio.com/mods/" + result["owner"] + "/" + result["name"]
-            mod.game_versions = result["game_versions"]
-            modlist.append(mod)
+            response_list.append("[**" + result["title"] + "**](" +
+                                "https://mods.factorio.com/mods/" + result["owner"] + "/" + result["name"] + ") - By: " +
+                                result["owner"] + " - Game Version: " +
+                                result["latest_release"]["game_version"])
+    return response_list
+
+#Checks if an author of a mod exists    
+def authorExists(author):
+    encoded_name = urllib.parse.quote_plus(author.encode('utf-8')) #we encode the name to a valid string for a url, replacing spaces with "+" and and & with &amp; for example 
+    json = requests.get("https://mods.factorio.com/api/mods?owner=" + encoded_name).json();
+    return json["results"] != []
     
-    return modlist
 
 #Shut down function
 def stopBot():
@@ -83,51 +76,39 @@ def isDone(comment):
             return True
     return False
 
-#Generates a reply string based on requests made, returns none if no requests could be found
-def generateReply(link_me_requests):
-    my_reply = ""
+def generateReply(link_requests):
+    #List of string responses
+    responses = []
+    #For each request
+    for request in link_requests:
+        #If it is an author request (1 capture group)
+        if(type(request) is str):
+            if(authorExists(request)):
+                responses.append("[**" + request + "**](https://mods.factorio.com/mods/" + request + ")")
+        #If it is a mod request (2 capture groups)
+        elif(type(request) is tuple):
+            #Seperate amount of mod results requested and search keyword
+            request_name = request[0] if len(request[0]) > 0 else 1
+            request_keyword = html.unescape(request[1].strip())
+            #Get request_name search results for request_keyword, and add them to responses
+            responses += search(request_keyword, request_name)
     
+    #The bot doesn't reply if it can't fulfil any of the requests.
+    if(len(responses) == 0):
+        return None
     
-    nOfFoundMods = 0
+    #Build reply string
+    reply = ""
+    #If maximum link limit was exceeded, notify user
+    if(len(responses) > Config.maxResponsesPerComment):
+        reply += "You requested more than " + str(Config.maxResponsesPerComment) + " links. I will only link to the first " + str(Config.maxResponsesPerComment) + ".\n\n"
+        del responses[Config.maxResponsesPerComment:]
     
-    for request in link_me_requests:
-        #Seperate amount of mod results requested and search keyword
-        request_name = request[0] if len(request[0])>0 else 1
-        request_keyword = request[1].strip()
-        
-        if len(request_keyword) > 0:
-            #HTML encoding to normal encoding
-            request_keyword = html.unescape(request_keyword)
-            #Get request_name search results for request_keyword
-            modlist = search(request_keyword, request_name)
-            #If results were found
-            if len(modlist) > 0:
-                #For each result found
-                for mod in modlist:
-                    #Update found mod counter
-                    nOfFoundMods += 1
-                    #Make sure mod request limit hasn't been reached
-                    if nOfFoundMods <= Config.maxModsPerComment:
-                        #Add mod to reply
-                        my_reply += "[**" + mod.name + "**](" + mod.link + ") - By: " + mod.author + " - Game Version: " + mod.game_versions[0] + "\n\n"
-                        logger.info("'" + request_keyword + "' found. Name: " + mod.name)
-            else:
-                #If mod wasn't found, add a message to the reply
-                my_reply +="I am sorry, I can't find any mods named '" + request_keyword + "'.\n\n"
-                logger.info("Can't find any mods named '" + request_keyword + "'")
+    #Add responses to reply
+    reply += "\n\n".join(responses)
     
-    #If mod limit was exceeded, add a message to the reply
-    if nOfFoundMods > Config.maxModsPerComment:
-        my_reply = "You requested more than " + str(Config.maxModsPerComment) + " mods. I will only link to the first " + str(Config.maxModsPerComment) + " mods.\n\n" + my_reply
-    
-    #Add the closing text
-    my_reply += Config.closingFormula
-
-    #The bot doesn't reply if it found none of the mods requested.
-    if nOfFoundMods == 0:
-        my_reply = None
-
-    return my_reply
+    reply += Config.closingFormula
+    return reply
 
 #Replies to the specified comment with the specified reply.
 def doReply(comment,myReply):
@@ -185,9 +166,11 @@ except Exception as e:
 
 #Request subreddits from PRAW
 subreddits = r.get_subreddit("+".join(Config.subreddits))
-#The magic matching regex. Explanation here: https://regex101.com/r/uT1gQ0/
-#Has 2 capture groups. 1st for number of mods requested (for a single keyword), and 2nd for the keyword.
-link_me_regex = re.compile("\\blink\s*(\d*)\s*mods?\s*:\s*(.*?)$", re.M | re.I)
+#The magic matching regexs. Explanation here: https://regex101.com/r/uT1gQ0/
+#1st regex. Matches mod requests. Has 2 capture groups. 1st for number of mods requested (for a single keyword), and 2nd for the keyword.
+link_mod_regex = re.compile("\\blink\s*(\d*)\s*mods?\s*:\s*(.*?)$", re.M | re.I)
+#2nd regex. Matches author requests. Has 1 capture group for author name.
+link_author_regex = re.compile("\\blink\s*author\s*:\s*(.*?)$", re.M | re.I)
 
 #Main Loop
 while True:
@@ -203,15 +186,16 @@ while True:
     for comment in comments:
         #Clean comment from reddit formatting
         clean_comment = removeRedditFormatting(comment.body)
-        #Find requests in the comment using magic regex.
-        link_me_requests = link_me_regex.findall(clean_comment)
+        #Find requests in the comment using magic regexs.
+        link_requests = link_mod_regex.findall(clean_comment)
+        link_requests += link_author_regex.findall(clean_comment)
         #If match found
-        if len(link_me_requests) > 0:
+        if len(link_requests) > 0:
             #If we have not already answered to the comment
             if not isDone(comment): 
                 #Generate reply
                 logger.debug("Generating reply to '" + comment.id + "'")
-                reply = generateReply(link_me_requests)
+                reply = generateReply(link_requests)
                 if reply is not None:
                     doReply(comment,reply)
                 else: #If generateReply() returns None, no mods have been found.
