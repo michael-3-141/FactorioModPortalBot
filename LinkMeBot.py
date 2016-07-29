@@ -85,6 +85,8 @@ def generateReply(link_requests):
         if(type(request) is str):
             if(authorExists(request)):
                 responses.append("[**" + request + "**](https://mods.factorio.com/mods/" + request + ")")
+            else:    
+                logger.info("Can't find author " + request)
         #If it is a mod request (2 capture groups)
         elif(type(request) is tuple):
             #Seperate amount of mod results requested and search keyword
