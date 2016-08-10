@@ -149,6 +149,9 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
+#Handle SIGTERM from Heroku
+signal.signal(signal.SIGTERM, stopBot)
+
 #Startup Code
 logger.info("Starting up")
 logger.debug("Logging in")
