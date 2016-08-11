@@ -22,6 +22,7 @@ import time
 import os
 import re
 import pickle
+import signal
 #web
 import urllib
 import html
