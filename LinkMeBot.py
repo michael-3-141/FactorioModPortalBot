@@ -48,7 +48,7 @@ def search(keyword, count):
             response_list.append("[**" + result["title"] + "**](" +
                                 "https://mods.factorio.com/mods/" + result["owner"] + "/" + result["name"] + ") - By: " +
                                 result["owner"] + " - Game Version: " +
-                                result["latest_release"]["game_version"])
+                                result["latest_release"]["factorio_version"])
     return response_list
 
 #Checks if an author of a mod exists    
