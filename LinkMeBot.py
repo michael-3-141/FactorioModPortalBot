@@ -31,24 +31,42 @@ import Config
 
 #Searches the mod portal with keyword "keyword" and returns an array of "count" mods.
 def search(keyword, count):
-    logger.info("Searching for '" + keyword + "'")
+    logger.info("Searching for " + str(count) + " results for '" + keyword + "'")
     encoded_name = urllib.parse.quote_plus(keyword.encode('utf-8')) #we encode the name to a valid string for a url, replacing spaces with "+" and and & with &amp; for example 
     
     #Request mods from mod portal API
     logger.debug("Sending request for search")
-    json = requests.get("https://mods.factorio.com/api/mods?q=" + encoded_name + "&page_size=" + str(count) + "&page=1").json();
+    json = requests.get("https://mods.factorio.com/api/mods?q=" + encoded_name + "&page_size=30&page=1&order=top").json();
     
     response_list = []
     
     if(json["results"] == []):
         logger.warning("Could not find mod " + keyword + " on the mod portal!")
     else:
+        #Two passes are done on the results. In the first pass only the exact matches are added. In the second, if needed, only non exact matches are added
+        #First pass
         for result in json["results"]:
-            response_list.append("[**" + result["title"] + "**](" +
-                                "https://mods.factorio.com/mods/" + result["owner"] + "/" + result["name"] + ") - By: " +
-                                result["owner"] + " - Game Version: " +
-                                result["latest_release"]["game_version"])
-    return response_list
+                #If the result's title contains an exact (case insensitive) match of the keyword
+                if(keyword.lower() in result["title"].lower()):
+                    #Add the result to the response list
+                    response_list.append("[**" + result["title"] + "**](" +
+                                        "https://mods.factorio.com/mods/" + result["owner"] + "/" + result["name"] + ") - By: " +
+                                        result["owner"] + " - Game Version: " +
+                                        result["latest_release"]["game_version"])
+        #If enough results were found
+        if(len(response_list) >= count):
+            #Return response list truncated to count
+            return response_list[:count]
+        #Second pass
+        for result in json["results"]:
+                #If the result's title does not contains an exact (case insensitive) match of the keyword (this is needed so that results from the first pass are not duplicated in the second)
+                if(not (keyword.lower() in result["title"].lower())):
+                    #Add the result to the response list
+                    response_list.append("[**" + result["title"] + "**](" +
+                                        "https://mods.factorio.com/mods/" + result["owner"] + "/" + result["name"] + ") - By: " +
+                                        result["owner"] + " - Game Version: " +
+                                        result["latest_release"]["game_version"])
+    return response_list[:count]
 
 #Checks if an author of a mod exists    
 def authorExists(author):
@@ -93,7 +111,7 @@ def generateReply(link_requests):
             request_name = request[0] if len(request[0]) > 0 else 1
             request_keyword = html.unescape(request[1].strip())
             #Get request_name search results for request_keyword, and add them to responses
-            responses += search(request_keyword, request_name)
+            responses += search(request_keyword, int(request_name))
     
     #The bot doesn't reply if it can't fulfil any of the requests.
     if(len(responses) == 0):
@@ -173,6 +191,7 @@ subreddits = r.get_subreddit("+".join(Config.subreddits))
 link_mod_regex = re.compile("\\blink\s*(\d*)\s*mods?\s*:\s*(.*?)$", re.M | re.I)
 #2nd regex. Matches author requests. Has 1 capture group for author name.
 link_author_regex = re.compile("\\blink\s*author\s*:\s*(.*?)$", re.M | re.I)
+
 
 #Main Loop
 while True:
