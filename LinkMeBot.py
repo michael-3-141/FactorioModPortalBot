@@ -22,6 +22,7 @@ import time
 import os
 import re
 import pickle
+import signal
 #web
 import urllib
 import html
@@ -166,6 +167,9 @@ fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
+
+#Handle SIGTERM from Heroku
+signal.signal(signal.SIGTERM, stopBot)
 
 #Startup Code
 logger.info("Starting up")
