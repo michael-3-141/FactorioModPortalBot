@@ -77,7 +77,7 @@ def authorExists(author):
     
 
 #Shut down function
-def stopBot():
+def stopBot(signum=0, frame=0):
     logger.info("Shutting down")
     sys.exit(0)
 
