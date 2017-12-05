@@ -176,8 +176,7 @@ logger.info("Starting up")
 logger.debug("Logging in")
 #Attempts to log in.
 try:
-    r = praw.Reddit(user_agent = "/u/FactorioModPortalBot by /u/michael________ V1.0")
-    r.login(os.environ['REDDIT_USER'], os.environ['REDDIT_PASS'], disable_warning=True)
+    r = praw.Reddit(user_agent = "/u/FactorioModPortalBot by /u/michael________ V1.0", client_id=os.environ['REDDIT_APPID'], client_secret=os.environ['REDDIT_SECRET'], username = os.environ['REDDIT_USER'], password = os.environ['REDDIT_PASS'])
     logger.info("Successfully logged in")
 except praw.errors.RateLimitExceeded as error:
     #Reddit API rate limit. Shuts down.
@@ -189,7 +188,7 @@ except Exception as e:
     stopBot()
 
 #Request subreddits from PRAW
-subreddits = r.get_subreddit("+".join(Config.subreddits))
+subreddits = r.subreddit("+".join(Config.subreddits))
 #The magic matching regexs. Explanation here: https://regex101.com/r/uT1gQ0/
 #1st regex. Matches mod requests. Has 2 capture groups. 1st for number of mods requested (for a single keyword), and 2nd for the keyword.
 link_mod_regex = re.compile("\\blink\s*(\d*)\s*mods?\s*:\s*(.*?)$", re.M | re.I)
@@ -202,29 +201,32 @@ while True:
     try:
         #Get all comments for selected subreddits.
         logger.debug("Getting the comments")
-        comments = subreddits.get_comments()
+        comments = subreddits.new()
         logger.info("Comments successfully downloaded")
     except Exception as e:
         logger.error("Exception '" + str(e) + "' occured while getting comments!")
         stopBot()
 
-    for comment in comments:
+    for sub in comments:
         #Clean comment from reddit formatting
-        clean_comment = removeRedditFormatting(comment.body)
+        sub.comments.replace_more(limit=0)
+        for comment in sub.comments.list():
+            clean_comment = removeRedditFormatting(comment.body)
         #Find requests in the comment using magic regexs.
-        link_requests = link_mod_regex.findall(clean_comment)
-        link_requests += link_author_regex.findall(clean_comment)
+            link_requests = link_mod_regex.findall(clean_comment)
+            link_requests += link_author_regex.findall(clean_comment)
         #If match found
-        if len(link_requests) > 0:
-            #If we have not already answered to the comment
-            if not isDone(comment): 
-                #Generate reply
-                logger.debug("Generating reply to '" + comment.id + "'")
-                reply = generateReply(link_requests)
-                if reply is not None:
-                    doReply(comment,reply)
-                else: #If generateReply() returns None, no mods have been found.
-                    logger.info("No Mods found for comment '" + comment.id + "'. Ignoring reply.")
+            if len(link_requests) > 0:
+                #If we have not already answered to the comment
+                if not isDone(comment): 
+                    #Generate reply
+                    logger.debug("Generating reply to '" + comment.id + "'")
+                    reply = generateReply(link_requests)
+                    if reply is not None:
+                        doReply(comment,reply)
+                    else: #If generateReply() returns None, no mods have been found.
+                        logger.info("No Mods found for comment '" + comment.id + "'. Ignoring reply.")
     
     logger.info("Done. Rechecking in 60 seconds.")
     time.sleep(60);
+
